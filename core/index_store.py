@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-import os
 from pathlib import Path
 import re
 import sqlite3
@@ -12,28 +11,44 @@ import threading
 import time
 import unicodedata
 from .chunker import Chunk
+from .paths import data_dir, model_dir, normalize_pdf_path
 
 
 def default_data_dir() -> Path:
-    override = os.environ.get("ACROBAT_SEMANTIC_DATA_DIR")
-    if override:
-        return Path(override).expanduser()
-    local = os.environ.get("LOCALAPPDATA")
-    return Path(local) / "AcrobatSemanticSearch" if local else Path.home() / ".acrobat_semantic_search"
+    return data_dir()
 
 
-def fingerprint(path: str | Path) -> str:
+_fingerprint_cache: dict[str, tuple[tuple[int, int, int, int], str]] = {}
+_fingerprint_lock = threading.Lock()
+
+
+def fingerprint(path: str | Path, cached: bool = True) -> str:
+    """SHA-256 of the file.
+
+    With cached=True the hash is reused while the file's size, modification time,
+    inode, and status-change time are all unchanged (a copy that preserves mtime
+    still changes ctime/inode). Indexing passes cached=False to always re-read.
+    """
     p = Path(path)
+    stat = p.stat()
+    key = str(p.resolve())
+    signature = (stat.st_size, stat.st_mtime_ns, stat.st_ino, stat.st_ctime_ns)
+    with _fingerprint_lock:
+        previous = _fingerprint_cache.get(key)
+    if cached and previous and previous[0] == signature:
+        return previous[1]
     digest = hashlib.sha256()
     with p.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
-    return digest.hexdigest()
+    value = digest.hexdigest()
+    with _fingerprint_lock:
+        _fingerprint_cache[key] = (signature, value)
+    return value
 
 
 def document_id(path: str | Path) -> str:
-    normalized = os.path.normcase(str(Path(path).expanduser().resolve()))
-    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return hashlib.sha256(normalize_pdf_path(path).encode("utf-8")).hexdigest()
 
 
 def _pack(vector: list[float] | tuple[float, ...] | None) -> bytes | None:
@@ -136,7 +151,14 @@ class IndexStore:
             row = self._db.execute("SELECT * FROM documents WHERE id=?", (document_id(path),)).fetchone()
         if not row:
             return None
-        current = fingerprint(path) if Path(path).is_file() else None
+        # stale: True = changed or missing, False = verified, None = could not be
+        # read (e.g. permission denied); the saved index stays searchable then.
+        try:
+            if not Path(path).is_file():
+                return {**dict(row), "stale": True}
+            current = fingerprint(path)
+        except OSError:
+            return {**dict(row), "stale": None}
         return {**dict(row), "stale": current != row["fingerprint"]}
 
     def replace_document(self, path: str | Path, fp: str, pages: int, chunks: list[Chunk],
@@ -245,7 +267,7 @@ class Embedder:
         except ImportError as exc:
             raise RuntimeError("Semantic embeddings need FastEmbed. Install packages from requirements.txt.") from exc
         import fastembed
-        cache_dir = Path(os.environ.get("FASTEMBED_CACHE_PATH", str(default_data_dir() / "models")))
+        cache_dir = model_dir()
         cache_dir.mkdir(parents=True, exist_ok=True)
         # Prefer an offline cache hit so warm local runs do not contact a model host.
         # If there is no cached model, allow FastEmbed's first-use download.

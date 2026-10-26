@@ -14,6 +14,10 @@ class SearchService:
         self._embedder = embedder
         self._index_lock = threading.Lock()
 
+    def reset_embedder(self) -> None:
+        """Forget the loaded model (e.g. after its cache folder is deleted)."""
+        self._embedder = None
+
     def index(self, path: str | Path, progress: Callable[[str, int, int], None] | None = None,
               cancel: Callable[[], bool] | None = None, semantic: bool = True) -> dict:
         if not self._index_lock.acquire(blocking=False):
@@ -26,7 +30,7 @@ class SearchService:
     def _index_document(self, path: str | Path, progress: Callable[[str, int, int], None] | None = None,
               cancel: Callable[[], bool] | None = None, semantic: bool = True) -> dict:
         path = Path(path).expanduser().resolve(strict=True)
-        before = fingerprint(path)
+        before = fingerprint(path, cached=False)
         pages = extract_pdf(path, progress=progress, cancel=cancel)
         chunks = chunk_pages(pages)
         vectors = None
@@ -58,7 +62,7 @@ class SearchService:
                 warnings.append(f"Semantic model unavailable; indexed for keyword search. {exc}")
         if cancel and cancel():
             raise InterruptedError("Indexing cancelled; previous index is unchanged.")
-        if fingerprint(path) != before:
+        if fingerprint(path, cached=False) != before:
             raise RuntimeError("PDF changed while indexing. Please retry.")
         self.store.replace_document(path, before, len(pages), chunks, vectors, model, ocr_pages, ocr_candidates)
         if progress:

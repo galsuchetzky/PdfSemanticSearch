@@ -5,7 +5,9 @@ import queue
 import threading
 import importlib.util
 import logging
-from typing import Any, Callable
+from typing import Any
+
+from ..base import AdapterState, Status, ViewerAdapter
 
 logger = logging.getLogger("acrobat_semantic_search.acrobat")
 
@@ -178,54 +180,28 @@ class AcrobatController:
             self._thread.join(timeout=3)
 
 
-class GlobalHotkey:
-    """Register Ctrl+Alt+F without installing a global keystroke hook."""
-    def __init__(self, callback: Callable[[], None]):
-        self.callback = callback
-        self._thread: threading.Thread | None = None
-        self._stop = threading.Event()
-        self.error: str | None = None
-        self._native_thread_id: int | None = None
+class AcrobatAdapter(ViewerAdapter):
+    """Licensed Acrobat: lists every open document and navigates over COM."""
+    name = "Adobe Acrobat"
 
-    def start(self) -> None:
-        if os.name != "nt":
-            self.error = "Global hotkey support is available only on Windows."
-            return
-        self._thread = threading.Thread(target=self._listen, name="Global-Hotkey", daemon=True)
-        self._thread.start()
+    def __init__(self):
+        self.controller = AcrobatController()
 
-    def _listen(self) -> None:
-        import ctypes
-        from ctypes import wintypes
-        user32 = ctypes.WinDLL("user32", use_last_error=True)
-        user32.RegisterHotKey.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_uint, ctypes.c_uint)
-        user32.RegisterHotKey.restype = ctypes.c_int
-        hotkey_id = 0xA55
-        MOD_ALT, MOD_CONTROL = 0x0001, 0x0002
-        self._native_thread_id = threading.get_native_id()
-        ctypes.set_last_error(0)
-        if not user32.RegisterHotKey(None, hotkey_id, MOD_ALT | MOD_CONTROL, 0x46):
-            code = ctypes.get_last_error()
-            self.error = f"Ctrl+Alt+F could not be registered (Windows error {code}). It may already be in use."
-            logger.error("Global hotkey registration failed: %s", self.error)
-            return
-        logger.info("Global hotkey Ctrl+Alt+F registered")
-        msg = wintypes.MSG()
-        try:
-            while not self._stop.is_set():
-                result = user32.GetMessageW(ctypes.byref(msg), None, 0, 0)
-                if result <= 0:
-                    break
-                if msg.message == 0x0312 and msg.wParam == hotkey_id:
-                    self.callback()
-        finally:
-            user32.UnregisterHotKey(None, hotkey_id)
+    def state(self) -> AdapterState:
+        if not self.controller._available:
+            return AdapterState(Status.UNAVAILABLE, "Acrobat automation (pywin32) is not available.")
+        if not self.controller._thread.is_alive():
+            return AdapterState(Status.UNAVAILABLE, self.controller._startup_error or "The Acrobat connector stopped.")
+        return AdapterState(Status.AVAILABLE)
 
-    def stop(self) -> None:
-        self._stop.set()
-        # GetMessage is awakened with WM_QUIT using the listener thread ID.
-        if self._thread and self._thread.is_alive() and os.name == "nt":
-            import ctypes
-            if self._native_thread_id is not None:
-                ctypes.windll.user32.PostThreadMessageW(self._native_thread_id, 0x0012, 0, 0)
+    def open_documents(self, known_paths: list[str]) -> list[str]:
+        return self.controller.open_documents()
 
+    def can_navigate(self) -> bool:
+        return True
+
+    def goto_page(self, path: str, page: int) -> None:
+        self.controller.goto_page(path, page)
+
+    def close(self) -> None:
+        self.controller.close()

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Hardened-runtime exceptions for Developer ID builds (used only when CODESIGN_IDENTITY is set). -->
+<plist version="1.0">
+<dict>
+    <!-- ctypes callbacks (global shortcut) need writable+executable memory. -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Bundled Python extension libraries are loaded by the embedded interpreter. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <!-- Lets the app send Apple events to Preview/Skim when viewer integration is on. -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+</dict>
+</plist>

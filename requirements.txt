@@ -2,11 +2,12 @@
 pymupdf==1.26.5
 fastembed==0.7.3
 
-# Windows desktop application
+# Desktop application (Windows and macOS)
 PySide6==6.10.0
 pywin32==311; sys_platform == "win32"
+# macOS viewer integration (Accessibility / workspace APIs); optional at runtime
+pyobjc-framework-ApplicationServices==12.2.2; sys_platform == "darwin"
+pyobjc-framework-Cocoa==12.2.2; sys_platform == "darwin"
 
 # Optional OCR fallback; install Tesseract OCR separately with heb and eng data.
 pytesseract==0.3.13
-
-pdfexample.pdf

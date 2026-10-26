@@ -11,7 +11,7 @@ import zipfile
 
 from packaging.requirements import Requirement
 
-PROJECT = Path(__file__).resolve().parents[1]
+PROJECT = Path(__file__).resolve().parents[2]
 DIST = Path(os.environ.get("ACROBAT_APP_BUILD_DIR", PROJECT / "build" / "portable" / "AcrobatSemanticSearch")).resolve()
 ICON = PROJECT / "install" / "assets" / "acrobat-semantic-search.ico"
 
@@ -173,7 +173,8 @@ def copy_runtime() -> None:
         "site-packages\\win32\\lib\nsite-packages\\Pythonwin\nimport site\n", encoding="ascii")
     shutil.copy2(PROJECT / "main.py", DIST / "main.py")
     shutil.copytree(PROJECT / "core", DIST / "core", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    shutil.copytree(PROJECT / "integration", DIST / "integration", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    for package in ("viewers", "app"):
+        shutil.copytree(PROJECT / package, DIST / package, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     shutil.copytree(PROJECT / "install" / "assets", DIST / "assets")
     (site / "sitecustomize.py").write_text(
         "from pathlib import Path\n"

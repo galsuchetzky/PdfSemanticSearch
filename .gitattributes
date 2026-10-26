@@ -1,0 +1,6 @@
+# Keep LF in the repo regardless of contributor OS; Python and PowerShell both accept LF.
+* text=auto
+
+*.ico binary
+*.png binary
+*.pdf binary

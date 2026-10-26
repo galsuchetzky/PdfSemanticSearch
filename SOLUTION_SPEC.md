@@ -54,13 +54,17 @@ Use Python 3.12 and the pins in `requirements.txt`. The implementation uses PyMu
 
 The current implementation is split into:
 
-- `main.py`: CLI and desktop window, worker threads, cross-document search, and progress UI.
+> **Update:** the app now also runs on macOS (see README). Viewer integration moved behind an optional adapter layer, and indexing and search no longer depend on it.
+
+- `main.py`: entry point, logging, and CLI commands.
+- `app/main_window.py`: desktop window, worker threads, cross-document search, and progress UI.
 - `core/service.py`: document indexing and search orchestration.
 - `core/extractor.py`: native page extraction and selective OCR, returning page records and extraction diagnostics.
 - `core/chunker.py`: page-preserving chunk creation with overlap.
 - `core/index_store.py`: SQLite schema, FTS5, embedding adapter, vector persistence, and hybrid ranking.
-- `integration/acrobat.py`: enumerate open documents, focus a chosen document, and navigate pages on an STA thread.
-- `install/`: per-user installer wizard and repeatable PyInstaller build script.
+- `core/paths.py`: per-platform data, model, and log locations; path normalization for index identity.
+- `viewers/`: optional viewer adapters. `windows/acrobat.py` enumerates open documents and navigates pages on an STA thread; `windows/reader_dde.py` covers free Reader; `macos/` covers Skim, Preview, and Accessibility-based detection.
+- `install/windows/`: per-user installer wizard and repeatable build script. `install/macos/`: .app and .dmg build.
 - `requirements.txt`: pinned runtime dependencies.
 
 ## PDF extraction and OCR

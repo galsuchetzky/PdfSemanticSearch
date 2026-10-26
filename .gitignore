@@ -1,10 +1,49 @@
-.venv/
-.tmp/
+# Python
 __pycache__/
 *.py[cod]
-data/
+.venv/
+venv/
+.env
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build outputs (Windows installer and future macOS .app/.dmg)
 build/
 dist/
 *.spec
+*.dmg
 
+# Local app state: indexes, model cache, logs, installed settings
+data/
+.tmp/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.log
+app-settings.json
+
+# User documents never belong in the repo; commit small test fixtures explicitly
+*.pdf
+!tests/fixtures/*.pdf
+
+# macOS
+.DS_Store
+._*
+.AppleDouble
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Editors and local agent tooling
+.vscode/
+.idea/
+.omc/
+.claude/settings.local.json

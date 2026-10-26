@@ -69,7 +69,7 @@ for ($i = 0; $i -lt 10 -and (Test-Path -LiteralPath $root); $i++) {{
 Remove-Item -LiteralPath $PSCommandPath -Force
 """
     fd, script_path = tempfile.mkstemp(prefix="acrobat-semantic-uninstall-", suffix=".ps1")
-    with os.fdopen(fd, "w", encoding="utf-8") as output:
+    with os.fdopen(fd, "w", encoding="utf-8-sig") as output:
         output.write(script)
     subprocess.Popen(
         ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script_path],

@@ -10,9 +10,10 @@ import os
 import re
 import subprocess
 import time
-import winreg
 from ctypes import wintypes
 from pathlib import Path
+
+from ..base import AdapterState, Status, ViewerAdapter
 
 
 class ReaderDdeError(RuntimeError):
@@ -21,10 +22,13 @@ class ReaderDdeError(RuntimeError):
 
 def _reader_executable() -> Path:
     """Return the installed Adobe desktop viewer executable."""
+    import winreg
     for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
         for key_path in (
             r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Acrobat.exe",
             r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\Acrobat.exe",
+            r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\AcroRd32.exe",
+            r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\AcroRd32.exe",
         ):
             try:
                 with winreg.OpenKey(hive, key_path) as key:
@@ -112,6 +116,7 @@ def _open_at_page(path: str, page: int) -> None:
 
 def _server_names() -> list[str]:
     """Return likely DDE service names, newest Reader naming first."""
+    import winreg
     major = "26"
     try:
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Adobe\Adobe Acrobat\DC\Installer") as key:
@@ -281,3 +286,27 @@ def goto_page(path: str, page: int) -> None:
         return
     except ReaderDdeError as launch_error:
         raise ReaderDdeError(f"{last_error or 'Reader DDE navigation failed.'} {launch_error}") from launch_error
+
+
+class ReaderAdapter(ViewerAdapter):
+    """Free Reader: window-title matching plus DDE / command-line page opening."""
+    name = "Adobe Reader"
+    fallback_only = True
+    scan_note = ("Reader only exposes the selected PDF tab here. Showing indexed PDFs matched to its window title; "
+                 "use Add PDFs for other open tabs.")
+
+    def state(self) -> AdapterState:
+        # Window titles and DDE need no executable path; only the command-line
+        # fallback does, and goto_page reports that if it is missing.
+        if os.name != "nt":
+            return AdapterState(Status.UNAVAILABLE, "Adobe Reader integration is Windows-only.")
+        return AdapterState(Status.AVAILABLE)
+
+    def open_documents(self, known_paths: list[str]) -> list[str]:
+        return match_reader_titles_to_paths(visible_reader_titles(), known_paths)
+
+    def can_navigate(self) -> bool:
+        return True
+
+    def goto_page(self, path: str, page: int) -> None:
+        goto_page(path, page)
