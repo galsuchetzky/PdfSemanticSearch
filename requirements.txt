@@ -1,0 +1,12 @@
+# Core PDF extraction and local semantic search
+pymupdf==1.26.5
+fastembed==0.7.3
+
+# Windows desktop application
+PySide6==6.10.0
+pywin32==311; sys_platform == "win32"
+
+# Optional OCR fallback; install Tesseract OCR separately with heb and eng data.
+pytesseract==0.3.13
+
+pdfexample.pdf

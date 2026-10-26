@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#12384A"/><stop offset="1" stop-color="#087E83"/>
+    </linearGradient>
+    <linearGradient id="lens" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFE29A"/><stop offset="1" stop-color="#F5A94F"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="54" fill="url(#bg)"/>
+  <path d="M65 43h76l39 39v95a14 14 0 0 1-14 14H65a14 14 0 0 1-14-14V57a14 14 0 0 1 14-14Z" fill="#F8FBF8"/>
+  <path d="M141 43v28a11 11 0 0 0 11 11h28" fill="#D8E9E5"/>
+  <path d="M141 43v28a11 11 0 0 0 11 11h28" fill="none" stroke="#BDD6D0" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M77 103h53M77 120h42" fill="none" stroke="#6D9292" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="128" cy="151" r="26" fill="none" stroke="#087E83" stroke-width="10"/>
+  <path d="m147 170 21 21" fill="none" stroke="url(#lens)" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="128" cy="151" r="8" fill="#D8F0E8"/>
+</svg>
